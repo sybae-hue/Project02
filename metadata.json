@@ -1,0 +1,6 @@
+{
+  "name": "점심 메뉴 룰렛 - 오늘 뭐 먹지?",
+  "description": "점심 메뉴를 손쉽고 재미있게 골라주는 맞춤형 돌림판 웹 앱. 나만의 메뉴 묶음 저장 및 Google Apps Script 호환 단일 HTML 제공.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

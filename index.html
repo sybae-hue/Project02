@@ -1,0 +1,2322 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>점심 메뉴 룰렛 - 오늘 뭐 먹지?</title>
+  <meta name="description" content="점심 메뉴를 손쉽고 재미있게 골라주는 맞춤형 돌림판 웹 앱. 나만의 메뉴 묶음 저장 및 Google Apps Script 호환 단일 HTML 제공." />
+  <meta property="og:title" content="점심 메뉴 룰렛 - 오늘 뭐 먹지?" />
+  <meta property="og:description" content="점심 메뉴를 손쉽고 재미있게 골라주는 맞춤형 돌림판 웹 앱. 나만의 메뉴 묶음 저장 및 Google Apps Script 호환 단일 HTML 제공." />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <!-- Google Fonts (Noto Sans KR) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    /* ==========================================================================
+       CSS Reset & Variables
+       ========================================================================== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --primary: #FF5722;
+      --primary-hover: #E64A19;
+      --primary-light: #FFEDE6;
+      --secondary: #FF9800;
+      --accent: #FFC107;
+      --bg: #F8F9FA;
+      --card-bg: #FFFFFF;
+      --text-main: #1E293B;
+      --text-sub: #64748B;
+      --text-muted: #94A3B8;
+      --border: #E2E8F0;
+      --success: #10B981;
+      --danger: #EF4444;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+      --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 18px;
+      --radius-full: 9999px;
+    }
+
+    body {
+      font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text-main);
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Container */
+    .app-container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 16px 20px 40px;
+      width: 100%;
+      flex: 1;
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0 24px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 24px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, #FF6B6B 0%, #FF5722 100%);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 24px;
+      box-shadow: 0 4px 10px rgba(255, 87, 34, 0.35);
+    }
+
+    .brand-title {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--text-main);
+      letter-spacing: -0.5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-badge {
+      font-size: 11px;
+      font-weight: 700;
+      background-color: var(--primary-light);
+      color: var(--primary);
+      padding: 2px 8px;
+      border-radius: var(--radius-full);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-header {
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      color: var(--text-sub);
+      padding: 8px 14px;
+      border-radius: var(--radius-full);
+      font-size: 13px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .btn-header:hover {
+      background: #F1F5F9;
+      color: var(--text-main);
+      border-color: #CBD5E1;
+    }
+
+    .btn-header.active {
+      background: var(--primary-light);
+      color: var(--primary);
+      border-color: #FFCCBC;
+    }
+
+    /* Main Grid Layout */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 1fr;
+      gap: 28px;
+      align-items: start;
+    }
+
+    @media (max-width: 860px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+        gap: 24px;
+      }
+    }
+
+    /* Cards */
+    .card {
+      background: var(--card-bg);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-md);
+      padding: 24px;
+      position: relative;
+    }
+
+    /* Wheel Section */
+    .wheel-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    .wheel-header {
+      margin-bottom: 20px;
+    }
+
+    .wheel-header h2 {
+      font-size: 19px;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .wheel-header p {
+      font-size: 13px;
+      color: var(--text-sub);
+      margin-top: 4px;
+    }
+
+    .wheel-stage {
+      position: relative;
+      width: 100%;
+      max-width: 440px;
+      aspect-ratio: 1 / 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 10px 0 20px;
+      user-select: none;
+    }
+
+    /* Needle (Top Arrow Indicator) */
+    .wheel-pointer {
+      position: absolute;
+      top: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      width: 42px;
+      height: 48px;
+      filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.3));
+      pointer-events: none;
+      transition: transform 0.08s ease;
+    }
+
+    .wheel-pointer.flicker {
+      transform: translateX(-50%) rotate(-8deg);
+    }
+
+    .wheel-canvas {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12), inset 0 0 0 4px #FFFFFF;
+      background: #FFFFFF;
+      cursor: pointer;
+    }
+
+    /* Action Controls below wheel */
+    .wheel-controls {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .btn-spin {
+      width: 100%;
+      max-width: 320px;
+      background: linear-gradient(135deg, #FF6B6B 0%, #FF5722 100%);
+      color: #FFFFFF;
+      border: none;
+      border-radius: var(--radius-full);
+      padding: 16px 24px;
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+      cursor: pointer;
+      box-shadow: 0 8px 18px rgba(255, 87, 34, 0.35);
+      transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-spin:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 22px rgba(255, 87, 34, 0.45);
+    }
+
+    .btn-spin:active:not(:disabled) {
+      transform: translateY(1px);
+      box-shadow: 0 4px 10px rgba(255, 87, 34, 0.3);
+    }
+
+    .btn-spin:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none !important;
+      box-shadow: none;
+      filter: grayscale(0.2);
+    }
+
+    .spin-subtext {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* Live Last Pick Box */
+    .last-pick-box {
+      margin-top: 14px;
+      padding: 12px 18px;
+      background: #FFF8F5;
+      border: 1px dashed #FFCCBC;
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      color: var(--text-main);
+      display: none;
+      align-items: center;
+      gap: 8px;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .last-pick-box.show {
+      display: flex;
+    }
+
+    .last-pick-badge {
+      background: var(--primary);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+    }
+
+    /* Right Column: Tabs & Management */
+    .tabs-nav {
+      display: flex;
+      border-bottom: 2px solid var(--border);
+      margin-bottom: 20px;
+      gap: 8px;
+    }
+
+    .tab-btn {
+      padding: 10px 16px;
+      font-size: 15px;
+      font-weight: 700;
+      background: transparent;
+      border: none;
+      color: var(--text-sub);
+      cursor: pointer;
+      position: relative;
+      transition: color 0.2s ease;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-main);
+    }
+
+    .tab-btn.active {
+      color: var(--primary);
+    }
+
+    .tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--primary);
+      border-radius: 2px;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+      animation: fadeIn 0.2s ease;
+    }
+
+    /* Menu Input Section */
+    .input-section {
+      margin-bottom: 20px;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .menu-input {
+      flex: 1;
+      padding: 12px 16px;
+      font-size: 14px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-md);
+      outline: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      font-family: inherit;
+    }
+
+    .menu-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(255, 87, 34, 0.15);
+    }
+
+    .btn-add {
+      background: var(--text-main);
+      color: #FFFFFF;
+      border: none;
+      padding: 0 20px;
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .btn-add:hover {
+      background: #0F172A;
+    }
+
+    .input-tip {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .menu-count-badge {
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    /* Menu Items List */
+    .menu-list-wrapper {
+      margin-top: 16px;
+      max-height: 380px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .menu-list-wrapper::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .menu-list-wrapper::-webkit-scrollbar-thumb {
+      background: #CBD5E1;
+      border-radius: 4px;
+    }
+
+    .menu-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 8px;
+    }
+
+    .menu-chip {
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+      transition: all 0.15s ease;
+    }
+
+    .menu-chip:hover {
+      border-color: #CBD5E1;
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .chip-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow: hidden;
+      min-width: 0;
+    }
+
+    .chip-color-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .chip-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .chip-delete-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      line-height: 1;
+      transition: all 0.15s ease;
+      flex-shrink: 0;
+    }
+
+    .chip-delete-btn:hover {
+      background: #FEE2E2;
+      color: var(--danger);
+    }
+
+    /* List Action Bar */
+    .list-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+
+    .btn-secondary {
+      background: #F8FAFC;
+      border: 1px solid var(--border);
+      color: var(--text-sub);
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .btn-secondary:hover {
+      background: #F1F5F9;
+      color: var(--text-main);
+      border-color: #CBD5E1;
+    }
+
+    /* Bundles / Preset Tab */
+    .preset-section-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-sub);
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .preset-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+
+    .preset-card {
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    }
+
+    .preset-card:hover {
+      border-color: var(--primary);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .preset-card-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 4px;
+    }
+
+    .preset-card-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .preset-card-count {
+      margin-top: 8px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--primary);
+    }
+
+    /* Custom Presets */
+    .save-current-bundle-box {
+      background: #F8FAFC;
+      border: 1px dashed #CBD5E1;
+      border-radius: var(--radius-md);
+      padding: 14px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .save-current-bundle-box p {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .btn-save-bundle {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      padding: 8px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .btn-save-bundle:hover {
+      background: var(--primary-hover);
+    }
+
+    .custom-preset-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .custom-preset-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 10px 14px;
+      gap: 8px;
+    }
+
+    .custom-preset-info {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .custom-preset-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .custom-preset-preview {
+      font-size: 11px;
+      color: var(--text-sub);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .custom-preset-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .btn-preset-apply {
+      background: var(--primary-light);
+      color: var(--primary);
+      border: none;
+      padding: 6px 10px;
+      border-radius: var(--radius-sm);
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .btn-preset-apply:hover {
+      background: #FFD8CC;
+    }
+
+    .btn-preset-del {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 6px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+    }
+
+    .btn-preset-del:hover {
+      color: var(--danger);
+      background: #FEE2E2;
+    }
+
+    /* Result Modal & Dialogs */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+      animation: fadeIn 0.2s ease;
+    }
+
+    .modal-overlay.show {
+      display: flex;
+    }
+
+    .modal-content {
+      background: #FFFFFF;
+      border-radius: var(--radius-lg);
+      max-width: 440px;
+      width: 100%;
+      padding: 28px 24px 24px;
+      box-shadow: var(--shadow-xl);
+      text-align: center;
+      position: relative;
+      animation: scaleUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .modal-icon-badge {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      margin: 0 auto 16px;
+      box-shadow: 0 4px 12px rgba(255, 152, 0, 0.25);
+    }
+
+    .result-menu-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-sub);
+      margin-bottom: 8px;
+    }
+
+    .result-menu-name {
+      font-size: 32px;
+      font-weight: 900;
+      color: var(--primary);
+      letter-spacing: -0.5px;
+      margin-bottom: 12px;
+      line-height: 1.2;
+      word-break: keep-all;
+    }
+
+    .result-message {
+      font-size: 14px;
+      color: var(--text-sub);
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+
+    .modal-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .btn-modal-primary {
+      background: linear-gradient(135deg, #FF6B6B 0%, #FF5722 100%);
+      color: #fff;
+      border: none;
+      padding: 13px 20px;
+      border-radius: var(--radius-full);
+      font-size: 15px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(255, 87, 34, 0.3);
+      transition: all 0.15s ease;
+    }
+
+    .btn-modal-primary:hover {
+      box-shadow: 0 6px 16px rgba(255, 87, 34, 0.4);
+      transform: translateY(-1px);
+    }
+
+    .btn-modal-secondary {
+      background: #F1F5F9;
+      color: var(--text-main);
+      border: none;
+      padding: 12px 20px;
+      border-radius: var(--radius-full);
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+
+    .btn-modal-secondary:hover {
+      background: #E2E8F0;
+    }
+
+    .btn-modal-outline {
+      background: transparent;
+      color: var(--text-sub);
+      border: 1px solid var(--border);
+      padding: 10px 16px;
+      border-radius: var(--radius-full);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn-modal-outline:hover {
+      background: #F8FAFC;
+      color: var(--text-main);
+    }
+
+    /* Prompt/Confirm In-App Modal */
+    .generic-modal-title {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text-main);
+      margin-bottom: 10px;
+      text-align: left;
+    }
+
+    .generic-modal-desc {
+      font-size: 14px;
+      color: var(--text-sub);
+      margin-bottom: 18px;
+      text-align: left;
+      line-height: 1.5;
+    }
+
+    .generic-modal-input {
+      width: 100%;
+      padding: 12px 14px;
+      font-size: 14px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-md);
+      margin-bottom: 20px;
+      outline: none;
+      font-family: inherit;
+    }
+
+    .generic-modal-input:focus {
+      border-color: var(--primary);
+    }
+
+    .generic-modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    /* Toasts */
+    .toast-container {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 2000;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+      width: 90%;
+      max-width: 400px;
+    }
+
+    .toast {
+      background: #1E293B;
+      color: #FFFFFF;
+      padding: 12px 18px;
+      border-radius: var(--radius-full);
+      font-size: 14px;
+      font-weight: 600;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      pointer-events: auto;
+      animation: toastIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      transition: all 0.25s ease;
+    }
+
+    .toast.toast-warning {
+      background: #D97706;
+    }
+
+    .toast.toast-danger {
+      background: #DC2626;
+    }
+
+    .toast.toast-success {
+      background: #059669;
+    }
+
+    .toast.hide {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+
+    /* Confetti Canvas */
+    #confettiCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 1001;
+      display: none;
+    }
+
+    /* Code View / GAS Guide Modal */
+    .code-box {
+      background: #0F172A;
+      color: #E2E8F0;
+      padding: 14px;
+      border-radius: var(--radius-md);
+      font-family: monospace;
+      font-size: 12px;
+      text-align: left;
+      overflow-x: auto;
+      margin: 14px 0;
+      max-height: 160px;
+    }
+
+    .gas-steps {
+      text-align: left;
+      font-size: 13px;
+      color: var(--text-sub);
+      margin: 12px 0 18px;
+      padding-left: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 24px 0 16px;
+      font-size: 12px;
+      color: var(--text-muted);
+      border-top: 1px solid var(--border);
+      margin-top: 40px;
+    }
+
+    /* Keyframes */
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes scaleUp {
+      from { opacity: 0; transform: scale(0.92); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateY(15px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Fullscreen Confetti Canvas -->
+  <canvas id="confettiCanvas"></canvas>
+
+  <div class="app-container">
+    <!-- Header -->
+    <header>
+      <div class="brand">
+        <div class="brand-icon">🎯</div>
+        <div>
+          <h1 class="brand-title">
+            점심 메뉴 룰렛
+            <span class="brand-badge">오늘 뭐 먹지?</span>
+          </h1>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="soundToggleBtn" class="btn-header" title="효과음 켜기/끄기">
+          <span id="soundIcon">🔊</span>
+          <span id="soundText">소리 켬</span>
+        </button>
+        <button id="gasExportBtn" class="btn-header" title="Google Apps Script 배포 코드 복사">
+          <span>📋</span>
+          <span>GAS 코드 복사</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Grid -->
+    <div class="main-grid">
+      <!-- Left: Wheel Section -->
+      <section class="card wheel-card">
+        <div class="wheel-header">
+          <h2>오늘 점심 메뉴 추첨</h2>
+          <p>원판 중앙이나 아래 '돌리기' 버튼을 눌러보세요!</p>
+        </div>
+
+        <div class="wheel-stage">
+          <!-- Top Arrow Needle Pointer -->
+          <svg class="wheel-pointer" id="wheelPointer" viewBox="0 0 42 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M21 46L6 14C4.5 11 6.5 7 10 7H32C35.5 7 37.5 11 36 14L21 46Z" fill="#DC2626" />
+            <path d="M21 42L9 14H33L21 42Z" fill="#EF4444" />
+            <circle cx="21" cy="14" r="5" fill="#FFFFFF" />
+          </svg>
+
+          <!-- Native Canvas -->
+          <canvas id="wheelCanvas" class="wheel-canvas" width="600" height="600"></canvas>
+        </div>
+
+        <div class="wheel-controls">
+          <button id="spinBtn" class="btn-spin">
+            <span>🎲</span>
+            <span>돌림판 돌리기</span>
+          </button>
+          <span class="spin-subtext">원판 가운데를 직접 터치해도 돌아갑니다</span>
+
+          <!-- Last Chosen Display -->
+          <div id="lastPickBox" class="last-pick-box">
+            <span class="last-pick-badge">방금 뽑힌 메뉴</span>
+            <strong id="lastPickText">-</strong>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right: Management & Bundles Section -->
+      <section class="card">
+        <!-- Tabs Nav -->
+        <div class="tabs-nav">
+          <button class="tab-btn active" data-tab="tab-list">
+            메뉴 관리 (<span id="menuCountTab">8</span>)
+          </button>
+          <button class="tab-btn" data-tab="tab-presets">
+            메뉴 묶음 (프리셋)
+          </button>
+        </div>
+
+        <!-- Tab 1: Menu List -->
+        <div id="tab-list" class="tab-content active">
+          <div class="input-section">
+            <div class="input-row">
+              <input 
+                type="text" 
+                id="menuInput" 
+                class="menu-input" 
+                placeholder="추가할 메뉴 입력 (쉼표 또는 줄바꿈으로 한 번에 등록)"
+                maxlength="30"
+              />
+              <button id="addMenuBtn" class="btn-add">추가</button>
+            </div>
+            <div class="input-tip">
+              <span>쉼표(,)나 엔터로 구분해 여러 개 붙여넣기 가능</span>
+              <span><span id="menuCountTip" class="menu-count-badge">8</span> / 16개</span>
+            </div>
+          </div>
+
+          <!-- Menu Chips Grid -->
+          <div class="menu-list-wrapper">
+            <div id="menuGrid" class="menu-grid">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- Action bar -->
+          <div class="list-actions">
+            <button id="resetDefaultBtn" class="btn-secondary" title="초기 8개 메뉴로 복원">
+              <span>🔄</span> 예시 메뉴 복원
+            </button>
+            <button id="shuffleMenuBtn" class="btn-secondary" title="원판 순서 섞기">
+              <span>🔀</span> 순서 섞기
+            </button>
+            <button id="clearAllBtn" class="btn-secondary" title="모든 메뉴 비우기">
+              <span>🗑️</span> 전체 삭제
+            </button>
+          </div>
+        </div>
+
+        <!-- Tab 2: Bundles (Presets) -->
+        <div id="tab-presets" class="tab-content">
+          <!-- Save Current as Bundle -->
+          <div class="save-current-bundle-box">
+            <div>
+              <p>현재 등록된 메뉴로 새 묶음 만들기</p>
+              <span style="font-size: 11px; color: var(--text-muted);">자주 찾는 단골 맛집이나 팀별 메뉴를 저장해보세요.</span>
+            </div>
+            <button id="saveBundleBtn" class="btn-save-bundle">
+              + 새 묶음 저장
+            </button>
+          </div>
+
+          <div class="preset-section-title">기본 추천 묶음</div>
+          <div id="builtInPresetsGrid" class="preset-grid">
+            <!-- Dynamically populated -->
+          </div>
+
+          <div class="preset-section-title" style="margin-top: 16px;">내가 저장한 묶음</div>
+          <div id="customPresetsList" class="custom-preset-list">
+            <!-- Dynamically populated or empty message -->
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+      <p>점심 메뉴 룰렛 • 단일 HTML 기반 순수 웹 앱 • Google Apps Script 웹 앱 지원</p>
+    </footer>
+  </div>
+
+  <!-- Result Modal Dialog -->
+  <div id="resultModal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-icon-badge">🎉</div>
+      <div class="result-menu-title">오늘의 점심 메뉴는 바로!</div>
+      <div id="resultMenuName" class="result-menu-name">제육볶음</div>
+      <div id="resultMenuDesc" class="result-message">
+        맛있는 점심 드시고 힘찬 오후 보내세요! 😋
+      </div>
+      <div class="modal-actions">
+        <button id="closeResultBtn" class="btn-modal-primary">좋아요, 결정!</button>
+        <button id="spinAgainBtn" class="btn-modal-secondary">🔄 한 번 더 돌리기</button>
+        <button id="excludeAndSpinBtn" class="btn-modal-outline">❌ 이 메뉴 빼고 다시 돌리기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Generic In-App Confirm / Prompt Modal -->
+  <div id="genericModal" class="modal-overlay">
+    <div class="modal-content" style="text-align: left;">
+      <h3 id="genericModalTitle" class="generic-modal-title">확인</h3>
+      <p id="genericModalDesc" class="generic-modal-desc">내용</p>
+      <input type="text" id="genericModalInput" class="generic-modal-input" style="display: none;" />
+      <div class="generic-modal-actions">
+        <button id="genericModalCancelBtn" class="btn-secondary" style="padding: 10px 18px;">취소</button>
+        <button id="genericModalConfirmBtn" class="btn-add" style="padding: 10px 18px;">확인</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Google Apps Script Guide & Export Modal -->
+  <div id="gasModal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 520px; text-align: left;">
+      <h3 class="generic-modal-title">📋 Google Apps Script 웹 앱 배포 안내</h3>
+      <p class="generic-modal-desc" style="margin-bottom: 10px;">
+        이 웹 앱은 CSS와 JS가 모두 하나의 <strong>Index.html</strong> 파일 안에 포함되어 있어 Google Apps Script의 <code>HtmlService</code>에서 별도 빌드 없이 바로 구동됩니다.
+      </p>
+      <ol class="gas-steps">
+        <li>Google 드라이브에서 <strong>새로 만들기 &gt; 더보기 &gt; Google Apps Script</strong> (또는 스프레드시트 확장 프로그램)를 엽니다.</li>
+        <li><code>Code.gs</code>에 아래 함수를 작성합니다:
+          <div class="code-box">function doGet() {
+  return HtmlService.createHtmlOutputFromFile('Index')
+    .setTitle('점심 메뉴 룰렛')
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1.0');
+}</div>
+        </li>
+        <li>왼쪽 메뉴에서 <strong>+ 버튼 &gt; HTML</strong>을 누르고 파일명을 <code>Index</code>로 지정합니다.</li>
+        <li>아래 [전체 HTML 복사] 버튼을 누른 후 <code>Index.html</code>에 붙여넣고 <strong>배포 &gt; 새 배포</strong>를 완료하면 나만의 점심 룰렛 웹 앱이 완성됩니다!</li>
+      </ol>
+      <div class="generic-modal-actions" style="margin-top: 20px;">
+        <button id="closeGasModalBtn" class="btn-secondary" style="padding: 10px 18px;">닫기</button>
+        <button id="copyFullHtmlBtn" class="btn-add" style="padding: 10px 18px; background: var(--primary);">
+          ✨ 단일 HTML 전체 복사하기
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Vanilla JavaScript Logic -->
+  <script>
+    (function () {
+      'use strict';
+
+      /* ========================================================================
+         Constants & Palettes
+         ======================================================================== */
+      const MIN_MENUS = 2;
+      const MAX_MENUS = 16;
+      const DEFAULT_MENUS = [
+        '김치찌개', '제육볶음', '돈까스', '짜장면',
+        '쌀국수', '비빔밥', '초밥', '햄버거'
+      ];
+
+      // Beautiful harmonized slice colors for appetite appeal
+      const SLICE_COLORS = [
+        '#FF6B6B', '#4ECDC4', '#FFA07A', '#45B7D1',
+        '#F7D794', '#778BEB', '#98D8C8', '#E77F67',
+        '#CF6A87', '#786FA6', '#F8A5C2', '#63CDDA',
+        '#EA8685', '#596275', '#E58E26', '#38ADA9'
+      ];
+
+      // Built-in Lunch Bundles
+      const BUILTIN_PRESETS = [
+        {
+          id: 'default',
+          title: '🍱 기본 추천 8종',
+          desc: '남녀노소 누구나 좋아하는 직장인 점심 스테디셀러',
+          items: ['김치찌개', '제육볶음', '돈까스', '짜장면', '쌀국수', '비빔밥', '초밥', '햄버거']
+        },
+        {
+          id: 'korean',
+          title: '🍲 든든한 한식',
+          desc: '밥심으로 일하는 날을 위한 뜨끈하고 든든한 한식',
+          items: ['김치찌개', '제육볶음', '된장찌개', '비빔밥', '순두부찌개', '뚝배기불고기', '돼지국밥', '닭갈비']
+        },
+        {
+          id: 'delivery',
+          title: '🛵 배달 & 분식',
+          desc: '사무실에서 편하게 시켜먹는 인기 배달 메뉴',
+          items: ['떡볶이', '김밥', '라면', '치킨', '피자', '수제버거', '마라탕', '순대']
+        },
+        {
+          id: 'japanese_western',
+          title: '🍣 일식 & 양식',
+          desc: '정갈하고 깔끔하게 기분 내고 싶은 날',
+          items: ['돈까스', '초밥', '라멘', '우동', '파스타', '스테이크덮밥', '사케동', '샐러드']
+        },
+        {
+          id: 'diet',
+          title: '🥗 가벼운 다이어트',
+          desc: '더부룩하지 않고 건강하고 산뜻한 식단',
+          items: ['닭가슴살 샐러드', '포케', '서브웨이 샌드위치', '그릭요거트 볼', '키토김밥', '단호박 수프']
+        },
+        {
+          id: 'rainy',
+          title: '☔ 비 오는 날 별미',
+          desc: '비 오는 날 창가에서 생각나는 뜨끈한 국물과 전',
+          items: ['칼국수', '해물파전', '수제비', '얼큰 짬뽕', '부대찌개', '순대국']
+        }
+      ];
+
+      /* ========================================================================
+         State & LocalStorage Wrappers
+         ======================================================================== */
+      let menus = [];
+      let customPresets = [];
+      let soundEnabled = true;
+      let lastPickedItem = null;
+
+      // Safe LocalStorage helpers
+      function loadStorage(key, fallback) {
+        try {
+          const raw = localStorage.getItem(key);
+          if (raw === null || raw === undefined) return fallback;
+          return JSON.parse(raw);
+        } catch (e) {
+          console.warn('localStorage read error:', e);
+          return fallback;
+        }
+      }
+
+      function saveStorage(key, value) {
+        try {
+          localStorage.setItem(key, JSON.stringify(value));
+        } catch (e) {
+          console.warn('localStorage write error:', e);
+        }
+      }
+
+      function initState() {
+        menus = loadStorage('lunch_roulette_menus', null);
+        if (!Array.isArray(menus) || menus.length < MIN_MENUS) {
+          menus = [...DEFAULT_MENUS];
+          saveStorage('lunch_roulette_menus', menus);
+        }
+
+        customPresets = loadStorage('lunch_roulette_custom_presets', []);
+        if (!Array.isArray(customPresets)) customPresets = [];
+
+        soundEnabled = loadStorage('lunch_roulette_sound', true);
+      }
+
+      /* ========================================================================
+         Web Audio Synthesizer (No external assets)
+         ======================================================================== */
+      let audioCtx = null;
+
+      function getAudioContext() {
+        if (!audioCtx) {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (AudioContextClass) {
+            audioCtx = new AudioContextClass();
+          }
+        }
+        if (audioCtx && audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        return audioCtx;
+      }
+
+      function playTickSound() {
+        if (!soundEnabled) return;
+        try {
+          const ctx = getAudioContext();
+          if (!ctx) return;
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(450, ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(150, ctx.currentTime + 0.04);
+          gain.gain.setValueAtTime(0.08, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.04);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.04);
+        } catch (e) {
+          // ignore audio failure
+        }
+      }
+
+      function playCelebrationSound() {
+        if (!soundEnabled) return;
+        try {
+          const ctx = getAudioContext();
+          if (!ctx) return;
+          const notes = [392, 523.25, 659.25, 783.99]; // G4, C5, E5, G5
+          notes.forEach((freq, idx) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            const start = ctx.currentTime + idx * 0.1;
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, start);
+            gain.gain.setValueAtTime(0, start);
+            gain.gain.linearRampToValueAtTime(0.15, start + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.001, start + 0.35);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(start);
+            osc.stop(start + 0.35);
+          });
+        } catch (e) {
+          // ignore audio failure
+        }
+      }
+
+      /* ========================================================================
+         UI Toast & Modals
+         ======================================================================== */
+      const toastContainer = document.getElementById('toastContainer');
+
+      function showToast(message, type = 'info') {
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        
+        let icon = 'ℹ️';
+        if (type === 'warning') icon = '⚠️';
+        if (type === 'danger') icon = '🚫';
+        if (type === 'success') icon = '✅';
+
+        toast.innerHTML = `<span>${icon}</span><span>${escapeHtml(message)}</span>`;
+        toastContainer.appendChild(toast);
+
+        setTimeout(() => {
+          toast.classList.add('hide');
+          setTimeout(() => {
+            if (toast.parentNode) toast.parentNode.removeChild(toast);
+          }, 300);
+        }, 2800);
+      }
+
+      function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
+      }
+
+      // Generic In-App Modal Dialog (Prompt or Confirm)
+      const genericModal = document.getElementById('genericModal');
+      const genericModalTitle = document.getElementById('genericModalTitle');
+      const genericModalDesc = document.getElementById('genericModalDesc');
+      const genericModalInput = document.getElementById('genericModalInput');
+      const genericModalCancelBtn = document.getElementById('genericModalCancelBtn');
+      const genericModalConfirmBtn = document.getElementById('genericModalConfirmBtn');
+
+      let currentModalHandler = null;
+
+      function openModal({ title, desc, showInput = false, defaultValue = '', placeholder = '', confirmText = '확인', cancelText = '취소', onConfirm }) {
+        genericModalTitle.textContent = title;
+        genericModalDesc.textContent = desc;
+        genericModalConfirmBtn.textContent = confirmText;
+        genericModalCancelBtn.textContent = cancelText;
+
+        if (showInput) {
+          genericModalInput.style.display = 'block';
+          genericModalInput.value = defaultValue;
+          genericModalInput.placeholder = placeholder;
+          setTimeout(() => genericModalInput.focus(), 100);
+        } else {
+          genericModalInput.style.display = 'none';
+        }
+
+        currentModalHandler = onConfirm;
+        genericModal.classList.add('show');
+      }
+
+      function closeModal() {
+        genericModal.classList.remove('show');
+        currentModalHandler = null;
+      }
+
+      genericModalCancelBtn.addEventListener('click', closeModal);
+
+      genericModalConfirmBtn.addEventListener('click', () => {
+        if (currentModalHandler) {
+          const val = genericModalInput.value.trim();
+          currentModalHandler(val);
+        }
+        closeModal();
+      });
+
+      genericModalInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          genericModalConfirmBtn.click();
+        } else if (e.key === 'Escape') {
+          closeModal();
+        }
+      });
+
+      /* ========================================================================
+         Roulette Canvas Drawing & Guaranteed Math
+         ======================================================================== */
+      const canvas = document.getElementById('wheelCanvas');
+      const ctx = canvas.getContext('2d');
+      const wheelPointer = document.getElementById('wheelPointer');
+      const spinBtn = document.getElementById('spinBtn');
+      const lastPickBox = document.getElementById('lastPickBox');
+      const lastPickText = document.getElementById('lastPickText');
+
+      let currentRotation = 0; // Current rotation in radians
+      let isSpinning = false;
+      let lastTickSliceIndex = -1;
+
+      // Pointer is fixed at TOP: 12 o'clock, which is -PI / 2 or 3*PI / 2
+      const POINTER_ANGLE = 3 * Math.PI / 2;
+
+      function drawWheel() {
+        const width = canvas.width;
+        const height = canvas.height;
+        const cx = width / 2;
+        const cy = height / 2;
+        const outerRadius = width / 2 - 14;
+
+        ctx.clearRect(0, 0, width, height);
+
+        const count = menus.length;
+        if (count === 0) return;
+
+        const sliceAngle = (2 * Math.PI) / count;
+
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(currentRotation);
+
+        // 1. Draw Slices
+        for (let i = 0; i < count; i++) {
+          const startAngle = i * sliceAngle;
+          const endAngle = startAngle + sliceAngle;
+          const color = SLICE_COLORS[i % SLICE_COLORS.length];
+
+          // Fill slice
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.arc(0, 0, outerRadius, startAngle, endAngle);
+          ctx.closePath();
+          ctx.fillStyle = color;
+          ctx.fill();
+
+          // Slice border
+          ctx.lineWidth = 2.5;
+          ctx.strokeStyle = '#FFFFFF';
+          ctx.stroke();
+
+          // Draw Text
+          ctx.save();
+          const midAngle = startAngle + sliceAngle / 2;
+          ctx.rotate(midAngle);
+
+          ctx.textAlign = 'right';
+          ctx.textBaseline = 'middle';
+          ctx.fillStyle = '#FFFFFF';
+          
+          // Shadow for text legibility
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+          ctx.shadowBlur = 4;
+          ctx.shadowOffsetX = 1;
+          ctx.shadowOffsetY = 1;
+
+          // Adaptive font size based on slice count
+          let fontSize = 22;
+          if (count > 12) fontSize = 16;
+          else if (count > 8) fontSize = 18;
+          ctx.font = `bold ${fontSize}px 'Noto Sans KR', sans-serif`;
+
+          // Truncate long text if necessary
+          let label = menus[i];
+          if (label.length > 7 && count > 10) {
+            label = label.substring(0, 6) + '…';
+          }
+
+          // Position text along radius
+          ctx.fillText(label, outerRadius - 32, 0);
+          ctx.restore();
+        }
+
+        // 2. Outer Decorative Rim
+        ctx.beginPath();
+        ctx.arc(0, 0, outerRadius, 0, 2 * Math.PI);
+        ctx.lineWidth = 8;
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(0, 0, outerRadius + 4, 0, 2 * Math.PI);
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#E2E8F0';
+        ctx.stroke();
+
+        // Decorative outer studs/pegs
+        for (let i = 0; i < count; i++) {
+          const pegAngle = i * sliceAngle;
+          const px = (outerRadius + 0.5) * Math.cos(pegAngle);
+          const py = (outerRadius + 0.5) * Math.sin(pegAngle);
+          ctx.beginPath();
+          ctx.arc(px, py, 4, 0, 2 * Math.PI);
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+
+        ctx.restore(); // Restore from rotation & translation
+
+        // 3. Center Hub (Fixed, Not rotating with wheel)
+        // Outer shadow ring
+        ctx.beginPath();
+        ctx.arc(cx, cy, 54, 0, 2 * Math.PI);
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.08)';
+        ctx.fill();
+
+        // White border ring
+        ctx.beginPath();
+        ctx.arc(cx, cy, 48, 0, 2 * Math.PI);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fill();
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = '#F1F5F9';
+        ctx.stroke();
+
+        // Inner Red/Orange button circle
+        const gradient = ctx.createLinearGradient(cx - 36, cy - 36, cx + 36, cy + 36);
+        gradient.addColorStop(0, '#FF6B6B');
+        gradient.addColorStop(1, '#FF5722');
+
+        ctx.beginPath();
+        ctx.arc(cx, cy, 38, 0, 2 * Math.PI);
+        ctx.fillStyle = gradient;
+        ctx.fill();
+
+        // Center text: '돌리기'
+        ctx.font = "bold 15px 'Noto Sans KR', sans-serif";
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#FFFFFF';
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.25)';
+        ctx.shadowBlur = 3;
+        ctx.fillText(isSpinning ? '두근두근' : 'START', cx, cy);
+        ctx.shadowColor = 'transparent';
+      }
+
+      /**
+       * Determines which slice is currently under the needle (at POINTER_ANGLE)
+       * local angle under pointer: (POINTER_ANGLE - currentRotation) % 2PI
+       */
+      function getIndexUnderPointer(rotation) {
+        const count = menus.length;
+        if (count === 0) return 0;
+        const sliceAngle = (2 * Math.PI) / count;
+
+        let localAngle = (POINTER_ANGLE - rotation) % (2 * Math.PI);
+        if (localAngle < 0) localAngle += 2 * Math.PI;
+
+        const index = Math.floor(localAngle / sliceAngle) % count;
+        return index;
+      }
+
+      /**
+       * Spin the wheel to a guaranteed winner with ease-out animation
+       */
+      function spinWheel(forcedIndex = null) {
+        if (isSpinning) return;
+        if (menus.length < MIN_MENUS) {
+          showToast(`메뉴는 최소 ${MIN_MENUS}개 이상이어야 합니다.`, 'warning');
+          return;
+        }
+
+        // Initialize Audio Context on user gesture
+        getAudioContext();
+
+        isSpinning = true;
+        spinBtn.disabled = true;
+
+        // 1. Pick the winning index
+        const count = menus.length;
+        const winnerIndex = (forcedIndex !== null && forcedIndex >= 0 && forcedIndex < count)
+          ? forcedIndex
+          : Math.floor(Math.random() * count);
+
+        const sliceAngle = (2 * Math.PI) / count;
+
+        // 2. Center angle of the winning slice in wheel coordinates
+        const sliceCenterAngle = (winnerIndex + 0.5) * sliceAngle;
+
+        // Add slight random jitter within 70% of slice width (avoids landing strictly at center)
+        const maxJitter = sliceAngle * 0.32;
+        const jitter = (Math.random() - 0.5) * 2 * maxJitter;
+        const targetWheelAngle = sliceCenterAngle + jitter;
+
+        // 3. Target rotation R such that (POINTER_ANGLE - R) % 2PI == targetWheelAngle
+        // i.e., R == POINTER_ANGLE - targetWheelAngle (mod 2PI)
+        let targetMod = (POINTER_ANGLE - targetWheelAngle) % (2 * Math.PI);
+        if (targetMod < 0) targetMod += 2 * Math.PI;
+
+        // Normalize currentRotation mod 2PI
+        let curMod = currentRotation % (2 * Math.PI);
+        if (curMod < 0) curMod += 2 * Math.PI;
+
+        // Calculate forward delta
+        let delta = targetMod - curMod;
+        if (delta <= 0) delta += 2 * Math.PI;
+
+        // Add 5 to 7 full rotations (3 ~ 4.5 seconds feel)
+        const fullSpins = 5 + Math.floor(Math.random() * 3);
+        const totalDistance = delta + fullSpins * 2 * Math.PI;
+
+        const startRotation = currentRotation;
+        const endRotation = currentRotation + totalDistance;
+
+        const duration = 3800 + Math.random() * 400; // ~4 seconds
+        const startTime = performance.now();
+
+        // Mechanical needle flicker state
+        let lastFlickerTime = 0;
+
+        function animate(now) {
+          const elapsed = now - startTime;
+          const t = Math.min(elapsed / duration, 1);
+
+          // Cubic / Quartic ease-out curve
+          const easeOut = 1 - Math.pow(1 - t, 4);
+          currentRotation = startRotation + totalDistance * easeOut;
+
+          // Sound & Needle tick check
+          const currentSlice = getIndexUnderPointer(currentRotation);
+          if (currentSlice !== lastTickSliceIndex) {
+            lastTickSliceIndex = currentSlice;
+            playTickSound();
+
+            // Trigger needle flicker animation
+            wheelPointer.classList.add('flicker');
+            lastFlickerTime = now;
+          }
+
+          if (now - lastFlickerTime > 50) {
+            wheelPointer.classList.remove('flicker');
+          }
+
+          drawWheel();
+
+          if (t < 1) {
+            requestAnimationFrame(animate);
+          } else {
+            // Animation finished!
+            wheelPointer.classList.remove('flicker');
+            currentRotation = endRotation;
+            drawWheel();
+
+            // Verification: Ensure pointer matches calculated winner
+            const finalIndex = getIndexUnderPointer(currentRotation);
+            const winnerMenu = menus[finalIndex];
+
+            isSpinning = false;
+            spinBtn.disabled = false;
+            lastPickedItem = winnerMenu;
+
+            // Show in live last pick box
+            lastPickText.textContent = winnerMenu;
+            lastPickBox.classList.add('show');
+
+            // Play celebration sounds & confetti
+            playCelebrationSound();
+            launchConfetti();
+
+            // Show result modal
+            showResultModal(winnerMenu);
+          }
+        }
+
+        requestAnimationFrame(animate);
+      }
+
+      // Center click & Canvas click listener
+      canvas.addEventListener('click', (e) => {
+        if (isSpinning) return;
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const x = (e.clientX - rect.left) * scaleX;
+        const y = (e.clientY - rect.top) * scaleY;
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+        const dist = Math.hypot(x - cx, y - cy);
+
+        // If clicked anywhere within outer radius, spin!
+        if (dist <= canvas.width / 2) {
+          spinWheel();
+        }
+      });
+
+      spinBtn.addEventListener('click', () => {
+        spinWheel();
+      });
+
+      /* ========================================================================
+         Confetti Particle Engine (Lightweight, pure canvas)
+         ======================================================================== */
+      const confettiCanvas = document.getElementById('confettiCanvas');
+      const cCtx = confettiCanvas.getContext('2d');
+      let confettiParticles = [];
+      let confettiAnimId = null;
+
+      function resizeConfetti() {
+        confettiCanvas.width = window.innerWidth;
+        confettiCanvas.height = window.innerHeight;
+      }
+      window.addEventListener('resize', resizeConfetti);
+      resizeConfetti();
+
+      function launchConfetti() {
+        resizeConfetti();
+        confettiParticles = [];
+        const count = 90;
+        const colors = ['#FF6B6B', '#4ECDC4', '#FFA07A', '#FFD166', '#06D6A0', '#118AB2', '#9B5DE5', '#F15BB5'];
+
+        for (let i = 0; i < count; i++) {
+          confettiParticles.push({
+            x: window.innerWidth / 2 + (Math.random() - 0.5) * 120,
+            y: window.innerHeight * 0.45,
+            w: 8 + Math.random() * 8,
+            h: 6 + Math.random() * 6,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            vx: (Math.random() - 0.5) * 16,
+            vy: -10 - Math.random() * 12,
+            gravity: 0.35 + Math.random() * 0.2,
+            drag: 0.96,
+            rotation: Math.random() * Math.PI * 2,
+            vr: (Math.random() - 0.5) * 0.3,
+            opacity: 1
+          });
+        }
+
+        confettiCanvas.style.display = 'block';
+
+        if (confettiAnimId) cancelAnimationFrame(confettiAnimId);
+
+        const startTime = performance.now();
+        function updateConfetti(now) {
+          cCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+          let aliveCount = 0;
+
+          for (let p of confettiParticles) {
+            p.vx *= p.drag;
+            p.vy *= p.drag;
+            p.vy += p.gravity;
+            p.x += p.vx;
+            p.y += p.vy;
+            p.rotation += p.vr;
+
+            if (now - startTime > 2200) {
+              p.opacity -= 0.02;
+            }
+
+            if (p.opacity > 0 && p.y < window.innerHeight + 50) {
+              aliveCount++;
+              cCtx.save();
+              cCtx.translate(p.x, p.y);
+              cCtx.rotate(p.rotation);
+              cCtx.globalAlpha = Math.max(0, p.opacity);
+              cCtx.fillStyle = p.color;
+              cCtx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+              cCtx.restore();
+            }
+          }
+
+          if (aliveCount > 0 && now - startTime < 4200) {
+            confettiAnimId = requestAnimationFrame(updateConfetti);
+          } else {
+            confettiCanvas.style.display = 'none';
+            cCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+          }
+        }
+
+        confettiAnimId = requestAnimationFrame(updateConfetti);
+      }
+
+      /* ========================================================================
+         Result Modal
+         ======================================================================== */
+      const resultModal = document.getElementById('resultModal');
+      const resultMenuName = document.getElementById('resultMenuName');
+      const resultMenuDesc = document.getElementById('resultMenuDesc');
+      const closeResultBtn = document.getElementById('closeResultBtn');
+      const spinAgainBtn = document.getElementById('spinAgainBtn');
+      const excludeAndSpinBtn = document.getElementById('excludeAndSpinBtn');
+
+      const CHEER_MESSAGES = [
+        '탁월한 선택입니다! 오늘 점심 맛있게 드세요! 😋',
+        '든든하게 드시고 오후도 파이팅하세요! 💪',
+        '맛있는 점심과 함께 기분 좋은 하루 보내세요! ✨',
+        '고민 해결 완료! 즐거운 점심 식사 되세요! 🍽️',
+        '후회 없는 꿀맛 점심이 될 거예요! 🥢'
+      ];
+
+      function showResultModal(menuName) {
+        resultMenuName.textContent = menuName;
+        const randomMsg = CHEER_MESSAGES[Math.floor(Math.random() * CHEER_MESSAGES.length)];
+        resultMenuDesc.textContent = randomMsg;
+        resultModal.classList.add('show');
+      }
+
+      closeResultBtn.addEventListener('click', () => {
+        resultModal.classList.remove('show');
+      });
+
+      spinAgainBtn.addEventListener('click', () => {
+        resultModal.classList.remove('show');
+        setTimeout(() => {
+          spinWheel();
+        }, 200);
+      });
+
+      excludeAndSpinBtn.addEventListener('click', () => {
+        resultModal.classList.remove('show');
+        if (menus.length <= MIN_MENUS) {
+          showToast(`메뉴는 최소 ${MIN_MENUS}개 이상이어야 합니다. 제외할 수 없습니다.`, 'warning');
+          return;
+        }
+
+        const idx = menus.indexOf(lastPickedItem);
+        if (idx !== -1) {
+          menus.splice(idx, 1);
+          saveStorage('lunch_roulette_menus', menus);
+          renderMenuList();
+          drawWheel();
+          showToast(`'${lastPickedItem}' 메뉴를 제외하고 다시 돌립니다!`, 'info');
+          setTimeout(() => {
+            spinWheel();
+          }, 350);
+        }
+      });
+
+      /* ========================================================================
+         Menu List Management (Add, Delete, Multi-paste, Shuffle, Reset)
+         ======================================================================== */
+      const menuInput = document.getElementById('menuInput');
+      const addMenuBtn = document.getElementById('addMenuBtn');
+      const menuGrid = document.getElementById('menuGrid');
+      const menuCountTab = document.getElementById('menuCountTab');
+      const menuCountTip = document.getElementById('menuCountTip');
+      const resetDefaultBtn = document.getElementById('resetDefaultBtn');
+      const shuffleMenuBtn = document.getElementById('shuffleMenuBtn');
+      const clearAllBtn = document.getElementById('clearAllBtn');
+
+      function updateMenuCounters() {
+        menuCountTab.textContent = menus.length;
+        menuCountTip.textContent = menus.length;
+      }
+
+      function renderMenuList() {
+        menuGrid.innerHTML = '';
+        updateMenuCounters();
+
+        menus.forEach((item, index) => {
+          const chip = document.createElement('div');
+          chip.className = 'menu-chip';
+
+          const color = SLICE_COLORS[index % SLICE_COLORS.length];
+
+          chip.innerHTML = `
+            <div class="chip-left">
+              <span class="chip-color-dot" style="background-color: ${color};"></span>
+              <span class="chip-name" title="${escapeHtml(item)}">${escapeHtml(item)}</span>
+            </div>
+            <button class="chip-delete-btn" data-index="${index}" title="메뉴 삭제">✕</button>
+          `;
+
+          menuGrid.appendChild(chip);
+        });
+
+        // Delete button handlers
+        menuGrid.querySelectorAll('.chip-delete-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const idx = parseInt(e.currentTarget.getAttribute('data-index'), 10);
+            removeMenu(idx);
+          });
+        });
+      }
+
+      function addMenusFromInput(rawText) {
+        if (!rawText || !rawText.trim()) return;
+
+        // Split by comma or newline
+        const candidates = rawText
+          .split(/[\n,]+/)
+          .map(s => s.trim())
+          .filter(s => s.length > 0);
+
+        if (candidates.length === 0) return;
+
+        let addedCount = 0;
+        let duplicateCount = 0;
+        let limitReached = false;
+
+        for (const candidate of candidates) {
+          if (menus.length >= MAX_MENUS) {
+            limitReached = true;
+            break;
+          }
+
+          // Duplicate check
+          const exists = menus.some(m => m.toLowerCase() === candidate.toLowerCase());
+          if (exists) {
+            duplicateCount++;
+            continue;
+          }
+
+          menus.push(candidate);
+          addedCount++;
+        }
+
+        saveStorage('lunch_roulette_menus', menus);
+        renderMenuList();
+        drawWheel();
+
+        menuInput.value = '';
+
+        if (addedCount > 0) {
+          showToast(`${addedCount}개 메뉴가 추가되었습니다.`, 'success');
+        }
+
+        if (duplicateCount > 0 && addedCount === 0) {
+          showToast(`이미 등록된 메뉴입니다. (${duplicateCount}건 중복 제외)`, 'warning');
+        }
+
+        if (limitReached) {
+          showToast(`메뉴는 최대 ${MAX_MENUS}개까지만 등록할 수 있습니다.`, 'warning');
+        }
+      }
+
+      function removeMenu(index) {
+        if (menus.length <= MIN_MENUS) {
+          showToast(`돌림판을 돌리려면 메뉴가 최소 ${MIN_MENUS}개 필요합니다.`, 'warning');
+          return;
+        }
+
+        const removedName = menus[index];
+        menus.splice(index, 1);
+        saveStorage('lunch_roulette_menus', menus);
+        renderMenuList();
+        drawWheel();
+        showToast(`'${removedName}' 메뉴가 삭제되었습니다.`, 'info');
+      }
+
+      addMenuBtn.addEventListener('click', () => {
+        addMenusFromInput(menuInput.value);
+      });
+
+      menuInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          addMenusFromInput(menuInput.value);
+        }
+      });
+
+      // Reset to Default 8 items
+      resetDefaultBtn.addEventListener('click', () => {
+        openModal({
+          title: '예시 메뉴로 되돌리기',
+          desc: '현재 목록을 지우고 김치찌개, 제육볶음, 돈까스 등 기본 8개 추천 메뉴로 재설정할까요?',
+          confirmText: '되돌리기',
+          cancelText: '취소',
+          onConfirm: () => {
+            menus = [...DEFAULT_MENUS];
+            saveStorage('lunch_roulette_menus', menus);
+            renderMenuList();
+            drawWheel();
+            showToast('기본 예시 메뉴로 복원되었습니다.', 'success');
+          }
+        });
+      });
+
+      // Shuffle Menu order
+      shuffleMenuBtn.addEventListener('click', () => {
+        if (menus.length < 2) return;
+        for (let i = menus.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [menus[i], menus[j]] = [menus[j], menus[i]];
+        }
+        saveStorage('lunch_roulette_menus', menus);
+        renderMenuList();
+        drawWheel();
+        showToast('메뉴 배치 순서가 무작위로 섞였습니다.', 'info');
+      });
+
+      // Clear all
+      clearAllBtn.addEventListener('click', () => {
+        openModal({
+          title: '전체 메뉴 삭제',
+          desc: '정말 모든 메뉴를 삭제하시겠습니까? 최소 2개 메뉴는 남겨두어야 합니다.',
+          confirmText: '삭제하기',
+          cancelText: '취소',
+          onConfirm: () => {
+            menus = ['점심메뉴 1', '점심메뉴 2'];
+            saveStorage('lunch_roulette_menus', menus);
+            renderMenuList();
+            drawWheel();
+            showToast('메뉴가 초기화되었습니다. 원하는 메뉴를 등록해주세요.', 'info');
+          }
+        });
+      });
+
+      /* ========================================================================
+         Preset Bundles (Built-in + Custom Saved to LocalStorage)
+         ======================================================================== */
+      const builtInPresetsGrid = document.getElementById('builtInPresetsGrid');
+      const customPresetsList = document.getElementById('customPresetsList');
+      const saveBundleBtn = document.getElementById('saveBundleBtn');
+
+      function renderBuiltinPresets() {
+        builtInPresetsGrid.innerHTML = '';
+        BUILTIN_PRESETS.forEach(preset => {
+          const card = document.createElement('div');
+          card.className = 'preset-card';
+          card.innerHTML = `
+            <div>
+              <div class="preset-card-title">${escapeHtml(preset.title)}</div>
+              <div class="preset-card-desc">${escapeHtml(preset.items.join(', '))}</div>
+            </div>
+            <div class="preset-card-count">${preset.items.length}개 메뉴 불러오기 &rarr;</div>
+          `;
+
+          card.addEventListener('click', () => {
+            openModal({
+              title: `'${preset.title}' 묶음 불러오기`,
+              desc: `현재 돌림판 메뉴를 '${preset.title}'(${preset.items.length}개) 목록으로 교체할까요?`,
+              confirmText: '불러오기',
+              cancelText: '취소',
+              onConfirm: () => {
+                menus = [...preset.items];
+                saveStorage('lunch_roulette_menus', menus);
+                renderMenuList();
+                drawWheel();
+                showToast(`'${preset.title}' 묶음을 불러왔습니다.`, 'success');
+
+                // Switch back to list tab
+                switchTab('tab-list');
+              }
+            });
+          });
+
+          builtInPresetsGrid.appendChild(card);
+        });
+      }
+
+      function renderCustomPresets() {
+        customPresetsList.innerHTML = '';
+        if (customPresets.length === 0) {
+          customPresetsList.innerHTML = `
+            <div style="text-align: center; padding: 20px; font-size: 13px; color: var(--text-muted); background: #F8FAFC; border-radius: 8px;">
+              저장된 나만의 묶음이 없습니다. 위 버튼을 눌러 현재 메뉴를 저장해보세요!
+            </div>
+          `;
+          return;
+        }
+
+        customPresets.forEach((bundle, index) => {
+          const item = document.createElement('div');
+          item.className = 'custom-preset-item';
+          item.innerHTML = `
+            <div class="custom-preset-info">
+              <div class="custom-preset-name">${escapeHtml(bundle.name)} (${bundle.items.length}개)</div>
+              <div class="custom-preset-preview">${escapeHtml(bundle.items.join(', '))}</div>
+            </div>
+            <div class="custom-preset-actions">
+              <button class="btn-preset-apply" data-index="${index}">적용</button>
+              <button class="btn-preset-del" data-index="${index}" title="삭제">🗑️</button>
+            </div>
+          `;
+
+          // Apply button
+          item.querySelector('.btn-preset-apply').addEventListener('click', () => {
+            openModal({
+              title: `'${bundle.name}' 묶음 불러오기`,
+              desc: `현재 메뉴를 '${bundle.name}'(${bundle.items.length}개) 메뉴로 바꿀까요?`,
+              confirmText: '불러오기',
+              cancelText: '취소',
+              onConfirm: () => {
+                menus = [...bundle.items];
+                saveStorage('lunch_roulette_menus', menus);
+                renderMenuList();
+                drawWheel();
+                showToast(`'${bundle.name}' 묶음을 불러왔습니다.`, 'success');
+                switchTab('tab-list');
+              }
+            });
+          });
+
+          // Delete button
+          item.querySelector('.btn-preset-del').addEventListener('click', () => {
+            openModal({
+              title: `'${bundle.name}' 묶음 삭제`,
+              desc: `정말 이 묶음을 삭제하시겠습니까?`,
+              confirmText: '삭제',
+              cancelText: '취소',
+              onConfirm: () => {
+                customPresets.splice(index, 1);
+                saveStorage('lunch_roulette_custom_presets', customPresets);
+                renderCustomPresets();
+                showToast(`묶음이 삭제되었습니다.`, 'info');
+              }
+            });
+          });
+
+          customPresetsList.appendChild(item);
+        });
+      }
+
+      // Save Current Menus as Custom Bundle
+      saveBundleBtn.addEventListener('click', () => {
+        if (menus.length < MIN_MENUS) {
+          showToast(`최소 ${MIN_MENUS}개 이상의 메뉴가 필요합니다.`, 'warning');
+          return;
+        }
+
+        openModal({
+          title: '새 메뉴 묶음 저장',
+          desc: '현재 돌림판에 등록된 메뉴를 묶음으로 저장합니다. 묶음 이름을 입력하세요:',
+          showInput: true,
+          placeholder: '예: 회사 근처 맛집, 비 오는 날 메뉴 등',
+          defaultValue: `나만의 묶음 ${customPresets.length + 1}`,
+          confirmText: '저장하기',
+          cancelText: '취소',
+          onConfirm: (bundleName) => {
+            if (!bundleName) {
+              showToast('묶음 이름을 입력해주세요.', 'warning');
+              return;
+            }
+
+            customPresets.push({
+              name: bundleName,
+              items: [...menus],
+              createdAt: Date.now()
+            });
+
+            saveStorage('lunch_roulette_custom_presets', customPresets);
+            renderCustomPresets();
+            showToast(`'${bundleName}' 묶음이 저장되었습니다!`, 'success');
+          }
+        });
+      });
+
+      /* ========================================================================
+         Tab Switching
+         ======================================================================== */
+      const tabButtons = document.querySelectorAll('.tab-btn');
+      const tabContents = document.querySelectorAll('.tab-content');
+
+      function switchTab(targetTabId) {
+        tabButtons.forEach(btn => {
+          btn.classList.toggle('active', btn.getAttribute('data-tab') === targetTabId);
+        });
+
+        tabContents.forEach(content => {
+          content.classList.toggle('active', content.id === targetTabId);
+        });
+      }
+
+      tabButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const tabId = btn.getAttribute('data-tab');
+          switchTab(tabId);
+        });
+      });
+
+      /* ========================================================================
+         Header Controls: Sound & GAS Export
+         ======================================================================== */
+      const soundToggleBtn = document.getElementById('soundToggleBtn');
+      const soundIcon = document.getElementById('soundIcon');
+      const soundText = document.getElementById('soundText');
+
+      function updateSoundUI() {
+        if (soundEnabled) {
+          soundIcon.textContent = '🔊';
+          soundText.textContent = '소리 켬';
+          soundToggleBtn.classList.add('active');
+        } else {
+          soundIcon.textContent = '🔇';
+          soundText.textContent = '소리 끔';
+          soundToggleBtn.classList.remove('active');
+        }
+      }
+
+      soundToggleBtn.addEventListener('click', () => {
+        soundEnabled = !soundEnabled;
+        saveStorage('lunch_roulette_sound', soundEnabled);
+        updateSoundUI();
+        if (soundEnabled) {
+          playTickSound();
+          showToast('효과음이 켜졌습니다.', 'info');
+        } else {
+          showToast('효과음이 꺼졌습니다.', 'info');
+        }
+      });
+
+      // Google Apps Script Modal & Full HTML Copy
+      const gasExportBtn = document.getElementById('gasExportBtn');
+      const gasModal = document.getElementById('gasModal');
+      const closeGasModalBtn = document.getElementById('closeGasModalBtn');
+      const copyFullHtmlBtn = document.getElementById('copyFullHtmlBtn');
+
+      gasExportBtn.addEventListener('click', () => {
+        gasModal.classList.add('show');
+      });
+
+      closeGasModalBtn.addEventListener('click', () => {
+        gasModal.classList.remove('show');
+      });
+
+      copyFullHtmlBtn.addEventListener('click', async () => {
+        try {
+          const fullHtml = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(fullHtml);
+            showToast('전체 HTML 코드가 클립보드에 복사되었습니다! GAS의 Index.html에 붙여넣으세요.', 'success');
+          } else {
+            // Fallback textarea copy
+            const tempArea = document.createElement('textarea');
+            tempArea.value = fullHtml;
+            document.body.appendChild(tempArea);
+            tempArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempArea);
+            showToast('전체 HTML 코드가 클립보드에 복사되었습니다!', 'success');
+          }
+        } catch (err) {
+          showToast('클립보드 복사 중 오류가 발생했습니다.', 'danger');
+        }
+      });
+
+      // Close modal on click outside content
+      [resultModal, genericModal, gasModal].forEach(modal => {
+        modal.addEventListener('click', (e) => {
+          if (e.target === modal) {
+            modal.classList.remove('show');
+          }
+        });
+      });
+
+      /* ========================================================================
+         Initialization
+         ======================================================================== */
+      initState();
+      updateSoundUI();
+      renderMenuList();
+      renderBuiltinPresets();
+      renderCustomPresets();
+      drawWheel();
+
+    })();
+  </script>
+</body>
+</html>
